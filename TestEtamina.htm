@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<!-- saved from url=(0080)http://ie.microsoft.com/testdrive/Graphics/hands-on-css3/hands-on_animations.htm -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!-- Copyright © Microsoft Corporation. All Rights Reserved. -->
+    <!-- Demo Author: Ted Johnson, Microsoft Corporation -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="IE10 Test Drive Demo">
+    <meta name="t_omni_demopage" content="1">
+    <title>Hands On: animations</title>
+    <link rel="stylesheet" type="text/css" href="./TestEtamina_files/BaseStyles.css">
+    <link rel="stylesheet" type="text/css" href="./TestEtamina_files/DemoTemplate.css">
+    <!--    <link rel="stylesheet" type="text/css" href="../../Includes/Styles/ReturnAndShareControls.css" />-->
+    <link rel="stylesheet" type="text/css" href="./TestEtamina_files/hands-on.css">
+    <link href="./TestEtamina_files/sliderControl.css" rel="stylesheet" type="text/css">
+    <link href="./TestEtamina_files/transforms.css" rel="stylesheet" type="text/css">
+    <link href="http://ie.microsoft.com/testdrive/Graphics/hands-on-css3/favicon.ico" rel="shortcut icon" type="image/x-icon">
+    <style type="text/css">
+        #atKeyframesMarkup
+        {
+            text-align: left;
+            font-family: Consolas, monospace;
+            padding: 2px 8px;
+            background-color: #e0e0e0;
+            margin-top: 100px;
+            line-height: 1.5em;
+        }
+        #atKeyframesMarkup p
+        {
+            padding: 0;
+            margin: 0 0 0 0.5in;
+            text-indent: -0.25in;
+        }
+        #markup
+        {
+            margin-top: 4px;
+        }
+        
+        #controls tr.keyframe td:first-child, #controls tr.fromframe td:first-child, #controls tr.toframe td:first-child
+        {
+            padding-left: 1em;
+        }
+        #controls tr.keyframe td
+        {
+            padding-top: 16px;
+        }
+        #controls tr.keyframeTiming td
+        {
+            vertical-align: top;
+        }
+        #controls tr.keyframeTiming td:first-child, #controls tr.keyframeProperty td:first-child
+        {
+            padding-left: 2em;
+        }
+        #controls tr.keyframeTiming div.cubicBezierTimingCanvasWrapper
+        {
+            padding-top: 8px;
+            text-align: right;
+            padding-right: 24px;
+            display: none;
+        }
+        #controls tr.keyframeTiming div.cubicBezierTimingCanvasWrapper span:first-child
+        {
+            display: inline-block;
+            vertical-align: top;
+        }
+    </style>
+    <style id="atKeyframes" type="text/css">@-webkit-keyframes demo {
+	from {
+		-webkit-animation-timing-function: ease;
+	}
+	50% {
+		-webkit-animation-timing-function: ease;
+	}
+	to {
+		-webkit-animation-timing-function: ease;
+	}
+}
+</style>
+    <script type="text/javascript">
+        var animationName;
+        var transformName;
+        var keyframesName;
+
+        function Init() {
+            transformName = FirstSupportedPropertyName(["transform", "msTransform", "MozTransform", "WebkitTransform", "OTransform"]);
+            animationName = FirstSupportedPropertyName(["animation", "msAnimation", "MozAnimation", "WebkitAnimation", "OAnimation"]);
+
+            if (animationName && animationName != "animation")
+                keyframesName = "-" + animationName.replace(/animation$/i, "").toLowerCase() + "-keyframes";
+            else
+                keyframesName = "keyframes";
+
+            if (!animationName) {
+                GrayOutControlTables();
+                AppendFeatureNote("Your browser does not support CSS3 Animations.");
+                return;
+            }
+
+            SetDelay(document.getElementById("delay").getAttribute("value"));
+            SetDuration(document.getElementById("duration").getAttribute("value"));
+            //            SetTimingFunction(document.getElementById("timingFunction").getAttribute("value"));
+
+            //            var optionTop = document.getElementById("optionTop");
+            //            var id = AppendAnimationProperty(optionTop.value, optionTop.text);
+            //            _Slider.setValue(document.querySelectorAll("#" + id + " .sliderControl")[0].id, 50);
+            //            
+            //            var optionLeft = document.getElementById("optionLeft");
+            //            id = AppendAnimationProperty(optionLeft.value, optionLeft.text);
+            //            _Slider.setValue(document.querySelectorAll("#" + id + " .sliderControl")[0].id, 50);
+
+            //  allow us to set properties at the end of the animation
+            var animationEndName = (animationName + "End").replace(/^ms/, "MS").replace(/^Webkit/, "webkit").replace(/^Moz.*/, "animationend").replace(/^animationEnd$/, "animationend");
+            document.getElementById("sample").addEventListener(animationEndName, animationEnded, false);
+
+            UpdateKeyframes();
+        }
+
+        function setSampleStyleProperty(prop, newValue) {
+            var sampleElement = document.getElementById("sample");
+            sampleElement.style[prop] = newValue;
+        }
+
+        function SetDelay(newValue) {
+            setSampleStyleProperty(animationName + "Delay", newValue);
+            PlayAll();
+        }
+
+        function SetDuration(newValue) {
+            setSampleStyleProperty(animationName + "Duration", newValue);
+            PlayAll();
+        }
+
+        function SetIterationCount(newValue) {
+            setSampleStyleProperty(animationName + "IterationCount", newValue);
+            PlayAll();
+        }
+
+        function SetDirection(newValue) {
+            setSampleStyleProperty(animationName + "Direction", newValue);
+            PlayAll();
+        }
+
+        function SetFillMode(newValue) {
+            setSampleStyleProperty(animationName + "FillMode", newValue);
+            PlayAll();
+        }
+        
+        function GetPropertyAndValue(xpropSlider) {
+            var propAndValue = {
+                prop: xpropSlider.getAttribute("xprop").replace("{transformName}", transformName).replace("{animationName}", animationName),
+                value: xpropSlider.getAttribute("value")
+            };
+
+            if (propAndValue.prop.indexOf(":") != -1) {
+                // special kind of property/value pair
+                var parts = propAndValue.prop.replace("{value}", propAndValue.value).split(":");
+                propAndValue.prop = parts[0];
+                propAndValue.value = parts[1];
+            }
+
+            return propAndValue;
+        }
+
+        function r2(v) {
+            return Math.round(v * 100) / 100;
+        }
+
+        function UpdateKeyframeTimingFunction(newValue, slider) {
+            var canvasId = slider.id + "Bezier";
+
+            document.getElementById(canvasId + "Wrap").style.display = (newValue == "cubic-bezier") ? "block" : "none";
+
+            switch (newValue) {
+                case "ease":
+                    _BezierControls.SetCPsForCanvas(canvasId, 0.25, 0.1, 0.25, 1.0);
+                    break;
+                case "linear":
+                    _BezierControls.SetCPsForCanvas(canvasId, 0.0, 0.0, 1.0, 1.0);
+                    break;
+                case "ease-in":
+                    _BezierControls.SetCPsForCanvas(canvasId, 0.42, 0, 1.0, 1.0);
+                    break;
+                case "ease-out":
+                    _BezierControls.SetCPsForCanvas(canvasId, 0, 0, 0.58, 1.0);
+                    break;
+                case "ease-in-out":
+                    _BezierControls.SetCPsForCanvas(canvasId, 0.42, 0, 0.58, 1.0);
+                    break;
+                case "step-start":
+                    _BezierControls.SetCPsForCanvas(canvasId, 0.0, 1.0, 0.0, 1.0);
+                    break;
+                case "step-end":
+                    _BezierControls.SetCPsForCanvas(canvasId, 1.0, 0.0, 1.0, 0.0);
+                    break;
+                case "cubic-bezier":
+                    var cps = _BezierControls.GetCPsForCanvas(canvasId);
+                    slider.setAttribute("value", newValue + "(" + r2(cps.x1) + ", " + r2(cps.y1) + ", " + r2(cps.x2) + ", " + r2(cps.y2) + ")");
+                    break;
+            }
+
+            UpdateKeyframes();
+        }
+
+        var toProperties = [];
+
+        function resetToProperties() {
+            var sampleElement = document.getElementById("sample");
+            for (var i = 0; i < toProperties.length; ++i) {
+                sampleElement.style.removeProperty(toProperties[i].prop.replace(/[A-Z]/g, function (m) { return "-" + m[0].toLowerCase(); }).replace(/^ms-/, "-ms-"));
+            }
+        }
+
+        function UpdateKeyframes() {
+            var keyframesAtRule = "@" + keyframesName + " demo {\n";
+            var inFrame = false;
+
+            resetToProperties();
+            toProperties.length = 0;
+            var transformList = [];
+
+            var closeFrame = function () {
+                if (inFrame) {
+                    if (transformList.length > 0) {
+                        var propValueObject = { prop: transformName, value: transformList.join(" ") };
+                        appendPropertyAndValue(propValueObject);
+
+                        if (doingTo)
+                            toProperties.push(propValueObject);
+
+                        transformList.length = 0;
+                    }
+
+                    keyframesAtRule += "\t}\n";
+                }
+            };
+
+            var beginFrame = function (pct) {
+                closeFrame();
+                keyframesAtRule += "\t" + pct + " {\n";
+                inFrame = true;
+            };
+
+            var appendPropertyAndValue = function (propAndValue) {
+                if (inFrame) {
+                    keyframesAtRule += "\t\t" + propAndValue.prop.replace(/[A-Z]/g, function (m) { return "-" + m[0].toLowerCase(); }).replace(/^ms-/, "-ms-")
+                        + ": " + propAndValue.value + ";\n";
+                }
+            };
+
+            var doingTo = false;
+            var keyframeRows = document.querySelectorAll("#keyframesList tr");
+            for (var i = 0; i < keyframeRows.length; ++i) {
+                switch (keyframeRows[i].className) {
+                    case "fromframe":
+                        beginFrame("from");
+                        doingTo = false;
+                        break;
+                    case "toframe":
+                        beginFrame("to");
+                        doingTo = true;
+                        break;
+                    case "keyframe":
+                        beginFrame(keyframeRows[i].getElementsByClassName("sliderControl")[0].getAttribute("value"));
+                        doingTo = false;
+                        break;
+                    case "keyframeTiming":
+                    case "keyframeProperty":
+                        var xpropSlider = keyframeRows[i].getElementsByClassName("sliderControl")[0];
+                        var pAndV = GetPropertyAndValue(xpropSlider);
+
+                        if (pAndV.prop == transformName)
+                            transformList.push(pAndV.value);
+                        else
+                            appendPropertyAndValue(pAndV);
+
+                        if (doingTo && keyframeRows[i].className != "keyframeTiming")
+                            toProperties.push(pAndV);
+
+                        break;
+                }
+            }
+
+            closeFrame();
+
+            keyframesAtRule += "}\n";
+
+            document.getElementById("atKeyframes").innerHTML = keyframesAtRule;
+
+            document.getElementById("atKeyframesMarkup").innerHTML = keyframesAtRule.replace(/\n/g, "<br />").replace(/\t/g, "&nbsp;&nbsp;");
+
+            PlayAll();
+        }
+
+        var animationFunctionsAdded = 0;
+
+        function AppendKeyframeProperty(propAndArgs, label) {
+            var propRowTemplate = '<tr id="_xp{counter}" class="keyframeProperty"><td>{label}:</td><td><span class="sliderControl" xprop="{prop}" slideroptions="{args};readoutalign=keyframes;setter=UpdateKeyframes"></span></td></tr>';
+
+            var split = propAndArgs.split("|");
+            var prop = split[0];
+            var args = split[1];
+
+            var template = propRowTemplate.replace(/{counter}/g, animationFunctionsAdded++)
+                .replace("{label}", label)
+                .replace("{prop}", prop)
+                .replace("{args}", args);
+
+            var keyframeTimingRows = document.querySelectorAll("tr.keyframeTiming");
+
+            for (var i = 0; i < keyframeTimingRows.length; ++i) {
+                var d = document.createElement("div");
+                d.innerHTML = "<table><tbody>" + template + "</tbody></table>";
+                var tr = d.firstChild.firstChild.firstChild;
+
+                keyframeTimingRows[i].parentNode.insertBefore(tr, keyframeTimingRows[i]);
+
+                _Slider.initUnder("#" + tr.id);
+            }
+
+            AdjustLayout();     // account for potentially wider control area
+            UpdateKeyframes();
+        }
+
+        function AddAnotherKeyframe() {
+
+            var toRow = document.querySelectorAll("#keyframesList tr.toframe")[0];
+            var keyframes = document.querySelectorAll("#keyframesList tr.keyframe");
+
+            function InsertCopyOfRowBefore(copy, before) {
+                var inner = copy.innerHTML;
+                inner = inner.replace(/(<span\s[^>]*class="sliderControl"[^>]*>).*?(<\/span>)/, "$1$2");
+                inner = inner.replace(/(id|myslider)="([^"]+)"/g, function (match, attr, theId) {
+                    if (theId.match(/^keyframe\d+/)) {
+                        var newId = theId.replace(/\d+/, (keyframes.length + 1).toString());
+                        return (attr + "=\"" + newId + "\"");
+                    }
+
+                    return "";
+                });
+
+                var template = "<tr class='" + copy.className + "'>" + inner + "</tr>";
+
+                var d = document.createElement("div");
+                d.innerHTML = "<table><tbody>" + template + "</tbody></table>";
+                var tr = d.firstChild.firstChild.firstChild;
+
+                before.parentNode.insertBefore(tr, before);
+
+                if (tr.className == "keyframeTiming") {
+                    var cans = tr.getElementsByClassName("cubicBezierTimingCanvas");
+                    if (cans.length == 1)
+                        _BezierControls.InitCubicBezierCanvas(cans[0]);
+
+                    var s = tr.getElementsByClassName("sliderControl")[0];
+                    UpdateKeyframeTimingFunction(s.getAttribute("value"), s);
+                    return false;   // break after this
+                }
+
+                return true;    // keep copying
+            }
+
+            for (var copyRow = keyframes[0]; InsertCopyOfRowBefore(copyRow, toRow); copyRow = copyRow.nextElementSibling) {
+            }
+
+            _Slider.initUnder("#keyframesList");
+            AdjustLayout();     // account for potentially wider control area
+        }
+
+        function animationEnded() {
+            if (document.getElementById("setToToAtEnd").checked) {
+                for (var i = 0; i < toProperties.length; ++i) {
+                    setSampleStyleProperty(toProperties[i].prop, toProperties[i].value);
+                }
+                refreshMarkupDisplay(document.getElementById("sample"));
+            }
+        }
+
+        function PlayAll() {
+            resetToProperties();
+            var sampleElement = document.getElementById("sample");
+            refreshMarkupDisplay(sampleElement);
+            sampleElement.style[animationName + "Name"] = "none";
+            window.setTimeout(function () { sampleElement.style[animationName + "Name"] = "demo"; }, 15);
+        }
+
+        function DeleteAll() {
+            var animationRows = document.querySelectorAll("#keyframesList tr.keyframeProperty");
+            for (var i = 0; i < animationRows.length; ++i) {
+                var tr = animationRows[i];
+                tr.parentNode.removeChild(tr);
+            }
+            UpdateKeyframes();
+        }
+    </script>
+</head>
+<body onload="Init();">
+    <div id="ReturnAndShareControls">
+    </div>
+    <h1 id="DemoTitle">
+        Hands On: animations
+    </h1>
+    <div id="DemoScreenreaderText">
+    </div>
+    <div id="DemoContent">
+        <div id="example" style="width: 563px; ">
+            <div id="sampleAndGhosts">
+                <div class="ghost">
+                    Original</div>
+                <div id="sample" style="-webkit-animation: demo 2s 0s none; ">
+                    “CSS Animations allow an author to modify CSS property values over time. In a simple
+                    transition, a single timing
+                    function and duration determine the intermediate values of the animating property.
+                    When finer control of the intermediate values is required, keyframes can be used.
+                    Keyframes are specified using a specialized CSS at-rule.”</div>
+            </div>
+            <div id="atKeyframesMarkup">@-webkit-keyframes demo {<br>&nbsp;&nbsp;from {<br>&nbsp;&nbsp;&nbsp;&nbsp;-webkit-animation-timing-function: ease;<br>&nbsp;&nbsp;}<br>&nbsp;&nbsp;50% {<br>&nbsp;&nbsp;&nbsp;&nbsp;-webkit-animation-timing-function: ease;<br>&nbsp;&nbsp;}<br>&nbsp;&nbsp;to {<br>&nbsp;&nbsp;&nbsp;&nbsp;-webkit-animation-timing-function: ease;<br>&nbsp;&nbsp;}<br>}<br></div>
+            <div id="markup"><p>-webkit-animation: demo 2s 0s none;</p></div>
+        </div>
+        <div id="controls">
+            <table>
+                <tbody><tr>
+                    <td>
+                        animation-delay:
+                    </td>
+                    <td>
+                        <span id="delay" class="sliderControl" slideroptions="min:0;max:5;step:0.1;value=0;units=s;animateclick=false;setter=SetDelay" value="0s">    	<div class="sliderLeftReadout" style="width: 118px; ">0s</div>		<div class="sliderMinusCell">			<a class="sliderMinus" href="javascript:_Slider.DecreaseValueByStep('delay');"></a>		</div>		<div class="sliderScaleCell" myslider="delay">			<div class="sliderScale"></div>			<a class="sliderThumbWrap" ondblclick="_Slider.RestoreValue(event, &#39;delay&#39;);" onkeydown="_Slider.KeyThumb(event, &#39;delay&#39;);" href="javascript:_Slider.IncreaseOrDecrease();" style="left: -2px; "><div class="sliderThumb"></div></a>		</div>		<div class="sliderPlusCell">			<a class="sliderPlus" href="javascript:_Slider.IncreaseValueByStep('delay');"></a>		</div>		<div class="sliderRightReadout" style="display: none; "></div></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        animation-duration:
+                    </td>
+                    <td>
+                        <span id="duration" class="sliderControl" slideroptions="min:0;max:10;step:0.1;value=2;units=s;animateclick=false;setter=SetDuration" value="2s">    	<div class="sliderLeftReadout" style="width: 118px; ">2s</div>		<div class="sliderMinusCell">			<a class="sliderMinus" href="javascript:_Slider.DecreaseValueByStep('duration');"></a>		</div>		<div class="sliderScaleCell" myslider="duration">			<div class="sliderScale"></div>			<a class="sliderThumbWrap" ondblclick="_Slider.RestoreValue(event, &#39;duration&#39;);" onkeydown="_Slider.KeyThumb(event, &#39;duration&#39;);" href="javascript:_Slider.IncreaseOrDecrease();" style="left: 35.4px; "><div class="sliderThumb"></div></a>		</div>		<div class="sliderPlusCell">			<a class="sliderPlus" href="javascript:_Slider.IncreaseValueByStep('duration');"></a>		</div>		<div class="sliderRightReadout" style="display: none; "></div></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        animation-iteration-count:
+                    </td>
+                    <td>
+                        <span id="iterationCount" class="sliderControl" slideroptions="min:0;max:10;value=1;animateclick=false;setter=SetIterationCount" value="1">    	<div class="sliderLeftReadout" style="width: 118px; ">1</div>		<div class="sliderMinusCell">			<a class="sliderMinus" href="javascript:_Slider.DecreaseValueByStep('iterationCount');"></a>		</div>		<div class="sliderScaleCell" myslider="iterationCount">			<div class="sliderScale"></div>			<a class="sliderThumbWrap" ondblclick="_Slider.RestoreValue(event, &#39;iterationCount&#39;);" onkeydown="_Slider.KeyThumb(event, &#39;iterationCount&#39;);" href="javascript:_Slider.IncreaseOrDecrease();" style="left: 16.7px; "><div class="sliderThumb"></div></a>		</div>		<div class="sliderPlusCell">			<a class="sliderPlus" href="javascript:_Slider.IncreaseValueByStep('iterationCount');"></a>		</div>		<div class="sliderRightReadout" style="display: none; "></div></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        animation-fill-mode:
+                    </td>
+                    <td>
+                        <span class="sliderControl" slideroptions="values=none | forwards | backwards | both;value=0;animateclick=false;setter=SetFillMode" id="_sliderControl0" value="none">    	<div class="sliderLeftReadout" style="width: 118px; ">none</div>		<div class="sliderMinusCell">			<a class="sliderMinus" href="javascript:_Slider.DecreaseValueByStep('_sliderControl0');"></a>		</div>		<div class="sliderScaleCell" myslider="_sliderControl0">			<div class="sliderScale"></div>			<a class="sliderThumbWrap" ondblclick="_Slider.RestoreValue(event, &#39;_sliderControl0&#39;);" onkeydown="_Slider.KeyThumb(event, &#39;_sliderControl0&#39;);" href="javascript:_Slider.IncreaseOrDecrease();" style="left: -2px; "><div class="sliderThumb"></div></a>		</div>		<div class="sliderPlusCell">			<a class="sliderPlus" href="javascript:_Slider.IncreaseValueByStep('_sliderControl0');"></a>		</div>		<div class="sliderRightReadout" style="display: none; "></div></span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        animation-direction:
+                    </td>
+                    <td>
+                        <span class="sliderControl" slideroptions="values=normal|alternate|reverse|alternate-reverse;value=0;animateclick=false;setter=SetDirection" id="_sliderControl1" value="normal">    	<div class="sliderLeftReadout" style="width: 118px; ">normal</div>		<div class="sliderMinusCell">			<a class="sliderMinus" href="javascript:_Slider.DecreaseValueByStep('_sliderControl1');"></a>		</div>		<div class="sliderScaleCell" myslider="_sliderControl1">			<div class="sliderScale"></div>			<a class="sliderThumbWrap" ondblclick="_Slider.RestoreValue(event, &#39;_sliderControl1&#39;);" onkeydown="_Slider.KeyThumb(event, &#39;_sliderControl1&#39;);" href="javascript:_Slider.IncreaseOrDecrease();" style="left: -2px; "><div class="sliderThumb"></div></a>		</div>		<div class="sliderPlusCell">			<a class="sliderPlus" href="javascript:_Slider.IncreaseValueByStep('_sliderControl1');"></a>		</div>		<div class="sliderRightReadout" style="display: none; "></div></span>
+                </td>
+                </tr>
+                <!-- <tr>
+                    <td style="vertical-align: top;">animation-timing-function: </td>
+                    <td>
+                    <div>
+                        <span id="timingFunction" class="sliderControl" slideroptions="values=ease | linear | ease-in | ease-out | ease-in-out | cubic-bezier;animateclick=false;setter=SetTimingFunction">
+                        </span>
+                    </div>
+                    <div style="padding-top: 8px; text-align: right; padding-right: 24px;">
+                        <span style="display: inline-block; vertical-align: top;">customize timing-function: </span>
+                        <canvas id="timingFunctionCanvas" class="cubicBezierTimingCanvas" width="100" height="100" myslider="timingFunction"></canvas>
+                    </div>
+                    </td>
+                </tr>-->
+            </tbody></table>
+            <table style="margin-top: 0.25in;">
+                <tbody><tr>
+                    <td colspan="1">
+                        @keyframes:
+                    </td>
+                    <td>
+                        <a class="moButton" style="float: right; margin-left: 1em;" href="javascript:PlayAll();">
+                            Play All</a> <a class="moButton" style="float: right;" href="javascript:AddAnotherKeyframe();">Add
+                            Another Keyframe</a>
+                    </td>
+                </tr>
+                </tbody><tbody id="keyframesList">
+                    <tr class="fromframe">
+                        <td colspan="2">
+                            from:
+                        </td>
+                    </tr>
+                    <tr class="keyframeTiming">
+                        <td>
+                            timing-function:
+                        </td>
+                        <td>
+                            <div>
+                                <span id="fromTimingFunction" class="sliderControl" xprop="{animationName}TimingFunction" slideroptions="values=ease | linear | ease-in | ease-out | ease-in-out | step-start | step-end | cubic-bezier;animateclick=false;readoutalign=keyframes;setter=UpdateKeyframeTimingFunction" value="ease">    	<div class="sliderLeftReadout" style="width: 84px; ">ease</div>		<div class="sliderMinusCell">			<a class="sliderMinus" href="javascript:_Slider.DecreaseValueByStep('fromTimingFunction');"></a>		</div>		<div class="sliderScaleCell" myslider="fromTimingFunction">			<div class="sliderScale"></div>			<a class="sliderThumbWrap" ondblclick="_Slider.RestoreValue(event, &#39;fromTimingFunction&#39;);" onkeydown="_Slider.KeyThumb(event, &#39;fromTimingFunction&#39;);" href="javascript:_Slider.IncreaseOrDecrease();" style="left: -2px; "><div class="sliderThumb"></div></a>		</div>		<div class="sliderPlusCell">			<a class="sliderPlus" href="javascript:_Slider.IncreaseValueByStep('fromTimingFunction');"></a>		</div>		<div class="sliderRightReadout" style="display: none; "></div></span>
+                            </div>
+                            <div id="fromTimingFunctionBezierWrap" class="cubicBezierTimingCanvasWrapper">
+                                <span>cubic-bezier timing-function: </span>
+                                <canvas id="fromTimingFunctionBezier" class="cubicBezierTimingCanvas" width="100" height="100" myslider="fromTimingFunction"></canvas>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="keyframe">
+                        <td>
+                            keyframe at:
+                        </td>
+                        <td>
+                            <span class="sliderControl" slideroptions="min:0.1;max:99.9;value=50;step=0.1;units=%;animateclick=false;readoutalign=keyframes;setter=UpdateKeyframes" id="_sliderControl2" value="50%">    	<div class="sliderLeftReadout" style="width: 84px; ">50%</div>		<div class="sliderMinusCell">			<a class="sliderMinus" href="javascript:_Slider.DecreaseValueByStep('_sliderControl2');"></a>		</div>		<div class="sliderScaleCell" myslider="_sliderControl2">			<div class="sliderScale"></div>			<a class="sliderThumbWrap" ondblclick="_Slider.RestoreValue(event, &#39;_sliderControl2&#39;);" onkeydown="_Slider.KeyThumb(event, &#39;_sliderControl2&#39;);" href="javascript:_Slider.IncreaseOrDecrease();" style="left: 91.49999999999999px; "><div class="sliderThumb"></div></a>		</div>		<div class="sliderPlusCell">			<a class="sliderPlus" href="javascript:_Slider.IncreaseValueByStep('_sliderControl2');"></a>		</div>		<div class="sliderRightReadout" style="display: none; "></div></span>
+                        </td>
+                    </tr>
+                    <tr class="keyframeTiming">
+                        <td>
+                            timing-function:
+                        </td>
+                        <td>
+                            <div>
+                                <span id="keyframe0TimingFunction" class="sliderControl" xprop="{animationName}TimingFunction" slideroptions="values=ease | linear | ease-in | ease-out | ease-in-out | step-start | step-end | cubic-bezier;animateclick=false;readoutalign=keyframes;setter=UpdateKeyframeTimingFunction" value="ease">    	<div class="sliderLeftReadout" style="width: 84px; ">ease</div>		<div class="sliderMinusCell">			<a class="sliderMinus" href="javascript:_Slider.DecreaseValueByStep('keyframe0TimingFunction');"></a>		</div>		<div class="sliderScaleCell" myslider="keyframe0TimingFunction">			<div class="sliderScale"></div>			<a class="sliderThumbWrap" ondblclick="_Slider.RestoreValue(event, &#39;keyframe0TimingFunction&#39;);" onkeydown="_Slider.KeyThumb(event, &#39;keyframe0TimingFunction&#39;);" href="javascript:_Slider.IncreaseOrDecrease();" style="left: -2px; "><div class="sliderThumb"></div></a>		</div>		<div class="sliderPlusCell">			<a class="sliderPlus" href="javascript:_Slider.IncreaseValueByStep('keyframe0TimingFunction');"></a>		</div>		<div class="sliderRightReadout" style="display: none; "></div></span>
+                            </div>
+                            <div id="keyframe0TimingFunctionBezierWrap" class="cubicBezierTimingCanvasWrapper">
+                                <span>cubic-bezier timing-function: </span>
+                                <canvas id="keyframe0TimingFunctionBezier" class="cubicBezierTimingCanvas" width="100" height="100" myslider="keyframe0TimingFunction"></canvas>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="toframe">
+                        <td colspan="2">
+                            to:
+                        </td>
+                    </tr>
+                    <tr class="keyframeTiming">
+                        <td>
+                            timing-function:
+                        </td>
+                        <td>
+                            <div>
+                                <span id="toTimingFunction" class="sliderControl" xprop="{animationName}TimingFunction" slideroptions="values=ease | linear | ease-in | ease-out | ease-in-out | step-start | step-end | cubic-bezier;animateclick=false;readoutalign=keyframes;setter=UpdateKeyframeTimingFunction" value="ease">    	<div class="sliderLeftReadout" style="width: 84px; ">ease</div>		<div class="sliderMinusCell">			<a class="sliderMinus" href="javascript:_Slider.DecreaseValueByStep('toTimingFunction');"></a>		</div>		<div class="sliderScaleCell" myslider="toTimingFunction">			<div class="sliderScale"></div>			<a class="sliderThumbWrap" ondblclick="_Slider.RestoreValue(event, &#39;toTimingFunction&#39;);" onkeydown="_Slider.KeyThumb(event, &#39;toTimingFunction&#39;);" href="javascript:_Slider.IncreaseOrDecrease();" style="left: -2px; "><div class="sliderThumb"></div></a>		</div>		<div class="sliderPlusCell">			<a class="sliderPlus" href="javascript:_Slider.IncreaseValueByStep('toTimingFunction');"></a>		</div>		<div class="sliderRightReadout" style="display: none; "></div></span>
+                            </div>
+                            <div id="toTimingFunctionBezierWrap" class="cubicBezierTimingCanvasWrapper">
+                                <span>cubic-bezier timing-function: </span>
+                                <canvas id="toTimingFunctionBezier" class="cubicBezierTimingCanvas" width="100" height="100" myslider="toTimingFunction"></canvas>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="padding-left: 28px;">
+                            <label>
+                                <input id="setToToAtEnd" type="checkbox" onclick="UpdateKeyframes();">
+                                Set sample to “to” properties at end of animation</label>
+                        </td>
+                    </tr>
+                </tbody>
+                <tbody><tr>
+                    <td colspan="3" style="height: 0px; border-bottom: 2px dotted lightblue;">
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="padding-top: 8px;">
+                        <label>
+                            Add a property:
+                            <select onchange="AppendKeyframeProperty(this.options[this.selectedIndex].value,this.options[this.selectedIndex].text);this.selectedIndex=0;">
+                                <option>[Select]</option>
+                                <option id="optionTop" value="top|min=-1;max=100;units=px;value=-1;animateclick=false">
+                                    top</option>
+                                <option id="optionLeft" value="left|min=-1;max=100;units=px;value=-1;animateclick=false">
+                                    left</option>
+                                <option value="width|min=100;max=200;units=px;value=150;animateclick=false">width</option>
+                                <option value="height|min=100;max=200;units=px;value=150;animateclick=false">height</option>
+                                <option value="color|value=1;values=Transparent,Black,Silver,Gray,White,Maroon,Red,Purple,Fuchsia,Green,Lime,Olive,Yellow,Navy,Blue,Teal,Aqua;animateclick=false">
+                                    color</option>
+                                <option value="backgroundColor|value=0;values=Transparent,Black,Silver,Gray,White,Maroon,Red,Purple,Fuchsia,Green,Lime,Olive,Yellow,Navy,Blue,Teal,Aqua;animateclick=false">
+                                    background-color</option>
+                                <option value="borderWidth|min=1;max=20;units=px;value=1;animateclick=false">border-width</option>
+                                <option value="borderRadius|min=0;max=75;units=px;value=0;animateclick=false">border-radius</option>
+                                <option value="borderColor|value=1;values=Transparent,Black,Silver,Gray,White,Maroon,Red,Purple,Fuchsia,Green,Lime,Olive,Yellow,Navy,Blue,Teal,Aqua;animateclick=false">
+                                    border-color</option>
+                                <option value="opacity|min=0;max=1;step=0.01;value=1;animateclick=false">opacity</option>
+                                <option value="{transformName}:translateX({value})|min=-200;max=200;step=5;value=0;units=px;animateclick=false">
+                                    transform: translateX(Δx)</option>
+                                <option value="{transformName}:translateY({value})|min=-200;max=200;step=5;value=0;units=px;animateclick=false">
+                                    transform: translateY(Δy)</option>
+                                <option value="{transformName}:scale({value})|min=0.5;max=2;step=0.1;value=1;animateclick=false">
+                                    transform: scale(sxy)</option>
+                                <option value="{transformName}:rotate({value})|min=-180;max=180;step=1;units=deg;value=0;animateclick=false">
+                                    transform: rotate(θ)</option>
+                            </select></label>
+                        <a class="moButton" style="float: right; margin-left: 1em;" href="javascript:PlayAll();">
+                            Play All</a> <a class="moButton" style="float: right;" href="javascript:DeleteAll();">
+                                Delete All</a>
+                    </td>
+                </tr>
+            </tbody></table>
+            <div id="featureNotes">
+            </div>
+        </div>
+    </div>
+    <div id="DemoDetails">
+        <div id="seeAlso">
+            <iframe src="./TestEtamina_files/see-also.htm" scrolling="no" width="100%" height="37" frameborder="0" marginheight="0" marginwidth="0" style="height: 68px; "></iframe>
+        </div>
+        <p class="basedOn">
+            This demo is based on the W3C Working Draft <a href="http://www.w3.org/TR/2009/WD-css3-animations-20090320/" target="_blank">CSS Animations Module Level 3</a>.</p>
+    </div>
+    <script type="text/javascript" src="./TestEtamina_files/hands-on.js"></script>
+	<script src="./TestEtamina_files/PointerDraw.js" type="text/javascript"></script>
+    <script src="./TestEtamina_files/sliderControl.js" type="text/javascript"></script>
+    <script src="./TestEtamina_files/bezierControl.js" type="text/javascript"></script>
+    <!--    <script type="text/javascript" src="../../Includes/Script/TestDriveCommon.js"></script>
+    <script type="text/javascript" src="../../Includes/Script/ReturnAndShareControls.js"></script>-->
+
+
+</body></html>
